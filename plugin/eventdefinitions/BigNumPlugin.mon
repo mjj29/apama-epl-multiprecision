@@ -1,12 +1,12 @@
-package com.apamax.bignum;
+package com.apamax.bignumbers;
 
 event FixedPrecisionInt
 {
 	import "multiprecision" as plugin;
-	constant integer SIGNED_128 = 128;
-	constant integer SIGNED_256 = 256;
-	constant integer SIGNED_512 = 512;
-	constant integer SIGNED_1024 = 1024;
+	constant integer SIGNED_128 := 128;
+	constant integer SIGNED_256 := 256;
+	constant integer SIGNED_512 := 512;
+	constant integer SIGNED_1024 := 1024;
 	static action create(integer size, any initialValue) returns FixedPrecisionInt
 	{
 		return FixedPrecision(plugin.createFixedPrecision(size));
@@ -53,7 +53,7 @@ event FixedPrecisionInt
 	}
 	action eq(any operand) returns boolean
 	{
-		return 0 == plugin.comp(underlying, operand);
+		return 0 = plugin.comp(underlying, operand);
 	}
 	action lt(any operand) returns boolean
 	{
@@ -112,7 +112,7 @@ event ArbitraryPrecisionInt
 	import "multiprecision" as plugin;
 	static action create(any initialValue) returns ArbitraryPrecisionInt
 	{
-		return ArbitraryPrecisionInt(plugin.createArbitraryPrecision(initialValue))
+		return ArbitraryPrecisionInt(plugin.createArbitraryPrecision(initialValue));
 	}
 	action add(any operand) returns ArbitraryPrecisionInt
 	{
@@ -156,7 +156,7 @@ event ArbitraryPrecisionInt
 	}
 	action eq(any operand) returns boolean
 	{
-		return 0 == plugin.comp(underlying, operand);
+		return 0 = plugin.comp(underlying, operand);
 	}
 	action lt(any operand) returns boolean
 	{
