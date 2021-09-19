@@ -4,7 +4,7 @@
 #include <type_traits>
 #include <iostream>
 
-#include <boost/multiprecision/gmp.hpp>
+//TODO #include <boost/multiprecision/gmp.hpp>
 #include <boost/multiprecision/cpp_int.hpp>
 
 using com::apama::epl::EPLPlugin;
@@ -12,7 +12,7 @@ using com::apama::epl::data_t;
 using com::apama::epl::custom_t;
 using com::apama::epl::get;
 using com::apama::epl::apply_visitor;
-using com::apama::epl::visitor;
+using com::apama::epl::const_visitor;
 
 namespace com::apamax::multiprecision {
 
@@ -28,13 +28,13 @@ class Multiprecision: public EPLPlugin<Multiprecision>
 private:
 	struct MultiprecisionBase
 	{
-		enum {
+		enum type_t {
 			ARBITRARY=1,
 			FIXED_128=128,
 			FIXED_256=256,
 			FIXED_512=512,
 			FIXED_1024=1024
-		} type_t;
+		};
 		virtual void add(const data_t &o) = 0;
 		virtual void sub(const data_t &o) = 0;
 		virtual void set(const data_t &o) = 0;
@@ -44,25 +44,24 @@ private:
 		virtual void div(const data_t &o) = 0;
 		virtual void abs() = 0;
 		virtual int64_t comp(const data_t &o) = 0;
-		virtual int64_t mag() = 0;
 		virtual std::string toString() = 0;
 		virtual double toFloat() = 0;
 		virtual int64_t toInteger(int64_t offset) = 0;
 		virtual custom_t<MultiprecisionBase> clone() = 0;
-		virtual type_t type() = 0;
+		virtual enum type_t type() = 0;
 	};
 
-	struct setOp { template<typename A, typename B> void operator()(A&a, B&b) { a.assign(b); } };
-	struct subOp { template<typename A, typename B> void operator()(A&a, B&b) { a -= b; } };
-	struct addOp { template<typename A, typename B> void operator()(A&a, B&b) { a += b; } };
-	struct modOp { template<typename A, typename B> void operator()(A&a, B&b) { a %= b; } };
-	struct mulOp { template<typename A, typename B> void operator()(A&a, B&b) { a *= b; } };
-	struct divOp { template<typename A, typename B> void operator()(A&a, B&b) { a /= b; } };
-	struct powOp { template<typename A, typename B> void operator()(A&a, B&b) { a = pow(a, b); } };
-	struct compOp { template<typename A, typename B> int64_t operator()(A&a, B&b) { return a.compare(b); } };
+	struct setOp { template<typename A, typename B> void operator()(A&a, const B&b) { a.assign(b); } };
+	struct subOp { template<typename A, typename B> void operator()(A&a, const B&b) { a -= b; } };
+	struct addOp { template<typename A, typename B> void operator()(A&a, const B&b) { a += b; } };
+	struct modOp { template<typename A, typename B> void operator()(A&a, const B&b) { a %= b; } };
+	struct mulOp { template<typename A, typename B> void operator()(A&a, const B&b) { a *= b; } };
+	struct divOp { template<typename A, typename B> void operator()(A&a, const B&b) { a /= b; } };
+	struct powOp { template<typename A, typename B> void operator()(A&a, const B&b) { /* TODO a = ::pow(a, b);*/ } };
+	struct compOp { template<typename A, typename B> int64_t operator()(A&a, const B&b) { return a.compare(b); } };
 
 	template<typename T, typename OP, typename RV>
-	class biopVisitor: public const_visitor<biopVisitor<T, OP, RV>, RV>
+	struct biopVisitor: public const_visitor<biopVisitor<T, OP, RV>, RV>
 	{
 		biopVisitor(T &t): t{t} {}
 		T &t;
@@ -70,14 +69,15 @@ private:
 		RV visitCustom(const sag_underlying_custom_t &i) const;
 	};
 
-	template<type_t TYPE, typename IMPL>
-	struct MultiprecisionBaseImpl
+	template<MultiprecisionBase::type_t TYPE, typename IMPL>
+	struct MultiprecisionBaseImpl: public MultiprecisionBase
 	{
 		IMPL data;
+		MultiprecisionBaseImpl(const IMPL &initial): data(initial) { }
 		MultiprecisionBaseImpl(const data_t &initial) { set(initial); }
 		type_t type() override { return TYPE; }
 		void set(const data_t &o) override {
-			if (DATA_STRING == o.type()) {
+			if (SAG_DATA_STRING == o.type_tag()) {
 				data.assign(get<const char*>(o));
 			} else {
 				apply_visitor(biopVisitor<IMPL, setOp, void>(data), o);
@@ -90,23 +90,24 @@ private:
 		void pow(const data_t &o) override { apply_visitor(biopVisitor<IMPL, powOp, void>(data), o); }
 		void mul(const data_t &o) override { apply_visitor(biopVisitor<IMPL, mulOp, void>(data), o); }
 		void div(const data_t &o) override { apply_visitor(biopVisitor<IMPL, divOp, void>(data), o); }
-		void abs() override { data = abs(data); }
-		int64_t comp(const data_t &o) override { apply_visitor(biopVisitor<IMPL, compOp, int64_t>(data), o); }
+		void abs() override { /* TODO data = ::abs(data);*/ }
+		int64_t comp(const data_t &o) override { return apply_visitor(biopVisitor<IMPL, compOp, int64_t>(data), o); }
 		std::string toString() override { return data.str(); }
-		double toFloat() override { return data.convert_t<double>(); }
+		double toFloat() override { return data.template convert_to<double>(); }
 		int64_t toInteger(int64_t offset) override
 		{
 			IMPL tmp = data;
 			tmp <<= offset;
-			return tmp.convert_to<int64_t>();
+			return tmp.template convert_to<int64_t>();
 		}
 		custom_t<MultiprecisionBase> clone() override;
 	};
 
-	template<type_t SIZE>
-	using FixedPrecision = public MultiprecisionBaseImpl<SIZE, boost::multiprecision::number<cpp_int_backend<SIZE, SIZE, signed_magnitude, checked, void> > >;
+	template<MultiprecisionBase::type_t SIZE>
+	using FixedPrecision = MultiprecisionBaseImpl<SIZE, boost::multiprecision::number<boost::multiprecision::cpp_int_backend<SIZE, SIZE, boost::multiprecision::signed_magnitude, boost::multiprecision::checked, void> > >;
 
-	using ArbitraryPrecision = public MultiprecisionBaseImpl<MultiprecisionBase::ARBITRARY, boost::multiprecision::mpz_int>;
+	//TODO using ArbitraryPrecision = MultiprecisionBaseImpl<MultiprecisionBase::ARBITRARY, boost::multiprecision::mpz_int>;
+	using ArbitraryPrecision = MultiprecisionBaseImpl<MultiprecisionBase::ARBITRARY, boost::multiprecision::number<boost::multiprecision::cpp_int_backend<128, 128, boost::multiprecision::signed_magnitude, boost::multiprecision::checked, void> >>;
 
 public:
 	Multiprecision(): base_plugin_t("Multiprecision") {}
@@ -173,34 +174,34 @@ private:
 	std::string toString(const custom_t<MultiprecisionBase> &v) { return v->toString(); }
 	double toFloat(const custom_t<MultiprecisionBase> &v) { return v->toFloat(); }
 	double toInteger(const custom_t<MultiprecisionBase> &v, int64_t offset) { return v->toInteger(offset); }
-	data_t toFixed(const custom_t<MultiprecisionBase> &v, int64_t size) {}
-	data_t toArbitrary(const custom_t<MultiprecisionBase> &v) {}
+	data_t toFixed(const custom_t<MultiprecisionBase> &v, int64_t size) {return data_t(); /*TODO*/}
+	data_t toArbitrary(const custom_t<MultiprecisionBase> &v) { return data_t(); /*TODO*/}
 	custom_t<MultiprecisionBase> clone(const custom_t<MultiprecisionBase> &v) { return v->clone(); }
 };
 
 template<typename T, typename OP, typename RV>
-RV Multiprecision::biopVisitor<T, OP, RV>::visitCustom(const sag_underlying_custom_t &i) const;
+RV Multiprecision::biopVisitor<T, OP, RV>::visitCustom(const sag_underlying_custom_t &i) const
 {
 	const custom_t<MultiprecisionBase> &base = reinterpret_cast<const custom_t<MultiprecisionBase> &>(i);
 	switch (base->type()) {
 		case MultiprecisionBase::ARBITRARY:
-			return OP()(t, static_cast<const ArbitraryPrecision&>(*base).data);
+			return OP()(t, static_cast<const ArbitraryPrecision&>(*base).data.convert_to<T>());
 		case MultiprecisionBase::FIXED_128:
-			return OP()(t, static_cast<const FixedPrecision<MultiprecisionBase::FIXED_128&>(*base).data);
+			return OP()(t, static_cast<const FixedPrecision<MultiprecisionBase::FIXED_128>&>(*base).data.convert_to<T>());
 		case MultiprecisionBase::FIXED_256:
-			return OP()(t, static_cast<const FixedPrecision<MultiprecisionBase::FIXED_256&>(*base).data);
+			return OP()(t, static_cast<const FixedPrecision<MultiprecisionBase::FIXED_256>&>(*base).data.convert_to<T>());
 		case MultiprecisionBase::FIXED_512:
-			return OP()(t, static_cast<const FixedPrecision<MultiprecisionBase::FIXED_512&>(*base).data);
+			return OP()(t, static_cast<const FixedPrecision<MultiprecisionBase::FIXED_512>&>(*base).data.convert_to<T>());
 		case MultiprecisionBase::FIXED_1024:
-			return OP()(t, static_cast<const FixedPrecision<MultiprecisionBase::FIXED_1024&>(*base).data);
+			return OP()(t, static_cast<const FixedPrecision<MultiprecisionBase::FIXED_1024>&>(*base).data.convert_to<T>());
 		default:
 				assert(false); // shouldn't happen
 				throw multiprecision_error("Unknown error");
 	}
 }
 
-template<type_t TYPE, typename IMPL>
-custom_t<Multiprecision::MultiprecisionBase> Multiprecision::MultiprecisionBaseImpl::clone()
+template<Multiprecision::MultiprecisionBase::type_t TYPE, typename IMPL>
+custom_t<Multiprecision::MultiprecisionBase> Multiprecision::MultiprecisionBaseImpl<TYPE, IMPL>::clone()
 {
 	if constexpr (TYPE == MultiprecisionBase::ARBITRARY) {
 		custom_t<ArbitraryPrecision> val{new ArbitraryPrecision(data)};
