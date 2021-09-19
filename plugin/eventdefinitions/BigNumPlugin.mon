@@ -1,0 +1,201 @@
+package com.apamax.bignum;
+
+event FixedPrecisionInt
+{
+	import "multiprecision" as plugin;
+	constant integer SIGNED_128 = 128;
+	constant integer SIGNED_256 = 256;
+	constant integer SIGNED_512 = 512;
+	constant integer SIGNED_1024 = 1024;
+	static action create(integer size, any initialValue) returns FixedPrecisionInt
+	{
+		return FixedPrecision(plugin.createFixedPrecision(size));
+	}
+	action add(any operand) returns FixedPrecisionInt
+	{
+		plugin.add(underlying, operand);
+		return self;
+	}
+	action sub(any operand) returns FixedPrecisionInt
+	{
+		plugin.sub(underlying, operand);
+		return self;
+	}
+	action mul(any operand) returns FixedPrecisionInt
+	{
+		plugin.mul(underlying, operand);
+		return self;
+	}
+	action div(any operand) returns FixedPrecisionInt
+	{
+		plugin.div(underlying, operand);
+		return self;
+	}
+	action inc() returns FixedPrecisionInt
+	{
+		plugin.add(underlying, 1);
+		return self;
+	}
+	action dec() returns FixedPrecisionInt
+	{
+		plugin.sub(underlying, 1);
+		return self;
+	}
+	action set(any operand) returns FixedPrecisionInt
+	{
+		plugin.set(underlying, operand);
+		return self;
+	}
+	action mod(any operand) returns FixedPrecisionInt
+	{
+		plugin.mod(underlying, operand);
+		return self;
+	}
+	action eq(any operand) returns boolean
+	{
+		return 0 == plugin.comp(underlying, operand);
+	}
+	action lt(any operand) returns boolean
+	{
+		return 0 > plugin.comp(underlying, operand);
+	}
+	action gt(any operand) returns boolean
+	{
+		return 0 < plugin.comp(underlying, operand);
+	}
+	action neq(any operand) returns boolean
+	{
+		return 0 != plugin.comp(underlying, operand);
+	}
+	action leq(any operand) returns boolean
+	{
+		return 0 >= plugin.comp(underlying, operand);
+	}
+	action geq(any operand) returns boolean
+	{
+		return 0 <= plugin.comp(underlying, operand);
+	}
+	action pow(any operand) returns FixedPrecisionInt
+	{
+		plugin.pow(underlying, operand);
+		return self;
+	}
+	action abs() returns FixedPrecisionInt
+	{
+		plugin.abs(underlying);
+		return self;
+	}
+	action toString() returns string { return plugin.toString(underlying); }
+	action toInteger(integer offset) returns integer { return plugin.toInteger(underlying, offset); }
+	action toFloat() returns float { return plugin.toFloat(underlying); }
+	action toFixed(integer size) returns any { return plugin.toArbitrary(underlying); }
+
+	action clone() returns FixedPrecisionInt { return FixedPrecisionInt(plugin.clone(underlying)); }
+
+
+// possible additions:
+//   rand()
+//   min()
+//   max()
+//   arbitrary precision floats
+//   powm
+//   check bits set
+//   msb/lsb
+//   miller_rabin
+
+	/** @private */
+	chunk underlying;
+}
+
+event ArbitraryPrecisionInt
+{
+	import "multiprecision" as plugin;
+	static action create(any initialValue) returns ArbitraryPrecisionInt
+	{
+		return ArbitraryPrecisionInt(plugin.createArbitraryPrecision(initialValue))
+	}
+	action add(any operand) returns ArbitraryPrecisionInt
+	{
+		plugin.add(underlying, operand);
+		return self;
+	}
+	action sub(any operand) returns ArbitraryPrecisionInt
+	{
+		plugin.subtract(underlying, operand);
+		return self;
+	}
+	action mul(any operand) returns ArbitraryPrecisionInt
+	{
+		plugin.add(underlying, operand);
+		return self;
+	}
+	action div(any operand) returns ArbitraryPrecisionInt
+	{
+		plugin.add(underlying, operand);
+		return self;
+	}
+	action inc() returns ArbitraryPrecisionInt
+	{
+		plugin.add(underlying, 1);
+		return self;
+	}
+	action dec() returns ArbitraryPrecisionInt
+	{
+		plugin.sub(underlying, 1);
+		return self;
+	}
+	action set(any operand) returns ArbitraryPrecisionInt
+	{
+		plugin.set(underlying, operand);
+		return self;
+	}
+	action mod(any operand) returns ArbitraryPrecisionInt
+	{
+		plugin.mod(underlying, operand);
+		return self;
+	}
+	action eq(any operand) returns boolean
+	{
+		return 0 == plugin.comp(underlying, operand);
+	}
+	action lt(any operand) returns boolean
+	{
+		return 0 > plugin.comp(underlying, operand);
+	}
+	action gt(any operand) returns boolean
+	{
+		return 0 < plugin.comp(underlying, operand);
+	}
+	action neq(any operand) returns boolean
+	{
+		return 0 != plugin.comp(underlying, operand);
+	}
+	action leq(any operand) returns boolean
+	{
+		return 0 >= plugin.comp(underlying, operand);
+	}
+	action geq(any operand) returns boolean
+	{
+		return 0 <= plugin.comp(underlying, operand);
+	}
+	action pow(any operand) returns ArbitraryPrecisionInt
+	{
+		plugin.pow(underlying, operand);
+		return self;
+	}
+	action abs() returns ArbitraryPrecisionInt
+	{
+		plugin.abs(underlying);
+		return self;
+	}
+	action toString() returns string { return plugin.toString(underlying); }
+	action toInteger(integer offset) returns integer { return plugin.toInteger(underlying, offset); }
+	action toFloat() returns float { return plugin.toFloat(underlying); }
+	action toFixed(integer size) returns FixedPrecisionInt { return plugin.toFixed(underlying, size); }
+
+	action clone() returns ArbitraryPrecisionInt { return ArbitraryPrecisionInt(plugin.clone(underlying)); }
+
+	/** @private */
+	chunk underlying;
+}
+

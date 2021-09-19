@@ -1,0 +1,18 @@
+using com.apamax.bignum.FixedPrecisionInt;
+using com.apamax.bignum.ArbitraryPrecisionInt;
+
+monitor Testcase
+{
+	action onload()
+	{
+		testBigInt("arbitrary", ArbitraryPrecisionInt.create(0));
+		testBigInt("fixed128", FixedPrecisionInt.create(128, 0));
+		testBigInt("fixed256", FixedPrecisionInt.create(256, 0));
+		testBigInt("fixed512", FixedPrecisionInt.create(512, 0));
+		testBigInt("fixed1024", FixedPrecisionInt.create(1024, 0));
+	}
+	action testBigInt(string name, any int)
+	{
+		print "Testing "+name;
+	}
+}
